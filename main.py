@@ -2,10 +2,46 @@
 Main file that will combine the data and the GUI.
 '''
 
-import data
 
 import tkinter as tk
 from tkinter import ttk
+import subprocess
+ 
+def command(command:str, input:str = None):
+    command = command.split()
+    
+    data = subprocess.run(command, capture_output = True, text = True, input = input) 
+    
+    return data.stdout
+
+def pipe(command1:str, command2:str):
+    command1 = command1.split()
+    command2 = command2.split()
+
+    command = subprocess.run(command1, capture_output = True, text = True)
+    command = command.stdout
+    command = subprocess.run(command2, capture_output = True, text = True, input = command)
+
+    return command.stdout
+
+def index_get_paragragh(data:str, select:int):
+    command = ['awk', '-v', 'RS=', '-v', 'ORS=', 'NR==' + str(select + 1)]
+
+    paragraph = subprocess.run(command, capture_output = True, text = True, input = data)
+
+    return paragraph.stdout
+
+def word_get_paragraph(data:str, word:str):
+    command = ['awk', '-v', 'RS=', f'/\\y{word}\\y/']
+    paragraph = subprocess.run(command, capture_output = True, text = True, input = data)
+
+    return paragraph.stdout
+
+def word_get_line(data:str, word:str):
+    command = ['grep', '-w', f'{word}']
+    line = subprocess.run(command, capture_output = True, text = True, input = data)
+
+    return line.stdout
 
 def main_window():
     lspci_selected = ''
@@ -24,7 +60,7 @@ def main_window():
             item_text = event.widget.item(selected_item, 'text')
             lspci_selected = item_text
 
-            if devices_selected in data.lspci_opd_name:
+            if devices_selected in lspci_opd_name:
                 update_text_widget(text_widget, )
 
     def setpci_select(event):
@@ -53,7 +89,7 @@ def main_window():
 
     #lspci commands listed frame/treeview.
     lspci_frame = create_frame(container = options_frame)
-    lspci_tree = create_treeview(container = lspci_frame, heading = 'lspci Options', data = data.lspci_opd_name + data.lspic_op_name)
+    lspci_tree = create_treeview(container = lspci_frame, heading = 'lspci Options', data = lspci_opd_name + lspic_op_name)
     lspci_tree.grid(column = 0, row = 0)
     create_scrollbar(container = lspci_frame, widget = lspci_tree, column = 1)
     lspci_frame.grid(column = 0, row = 0, sticky = 'n')
@@ -61,7 +97,7 @@ def main_window():
 
     #setpci commands listed frame/treeview.
     setpci_frame = create_frame(container = options_frame)
-    setpci_tree = create_treeview(container = setpci_frame, heading = 'setpci Options', data = data.setpci_op_name)
+    setpci_tree = create_treeview(container = setpci_frame, heading = 'setpci Options', data = setpci_op_name)
     setpci_tree.grid(column = 0, row = 0)
     create_scrollbar(container = setpci_frame, widget = setpci_tree, column = 1)
     setpci_frame.grid(column = 0, row = 1, sticky = 'ns')
@@ -69,7 +105,7 @@ def main_window():
 
     #Devices listed frame/treeview.
     devices_frame = create_frame(container = options_frame)
-    devices_tree = create_treeview(container = devices_frame, heading = 'lspci Devices', data = data.slot_list)
+    devices_tree = create_treeview(container = devices_frame, heading = 'lspci Devices', data = slot_list)
     devices_tree.grid(column = 0, row = 0)
     create_scrollbar(container = devices_frame, widget = devices_tree, column = 1)
     devices_frame.grid(column = 1, row = 0, sticky = 'ns', rowspan = 2)
@@ -136,5 +172,24 @@ def update_text_widget(widget:object, info:str):
     widget.insert(tk.END, info)
     widget.config(state = 'disabled')
 
+devices = pipe('lspci -vmm', 'grep -w Device')
+devices = devices.replace('Device:\t', '')
+devices_list = devices.split('\n')
+devices_list = list(filter(None, devices_list))    #Removes empty items in list.
+
+slot = pipe('lspci -vvv', 'awk -v RS= {print$1}')
+slot_list = slot.split('\n')
+slot_list = list(filter(None, slot_list))
+
+#Device specific commands
+lspci_opd_name = ['lspci -v', 'lspci -vvv', 'lspci -nvmm', 'lspci -xxx']
+#lspici_opd_device = list(map(lambda item: item + main.devices_selected, lspci_opd_name))
+lspci_opd_out = [command(option) for option in lspci_opd_name]
+
+#Non device specific commands
+lspic_op_name  = ['lspci -tv']
+lspic_op_out = [command(option) for option in lspic_op_name]
+
+setpci_op_name = ['setpci --dumpregs']
 
 main_window()
