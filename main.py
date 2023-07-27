@@ -6,6 +6,8 @@ Main file that will combine the data and the GUI.
 import tkinter as tk
 from tkinter import ttk
 import subprocess
+
+
  
 def command(command:str, input:str = None):
     command = command.split()
@@ -44,9 +46,6 @@ def word_get_line(data:str, word:str):
     return line.stdout
 
 def main_window():
-    lspci_selected = ''
-    setpci_selected = ''
-    devices_selected = ''
 
     def lspci_select(event):
         global lspci_selected
@@ -60,8 +59,10 @@ def main_window():
             item_text = event.widget.item(selected_item, 'text')
             lspci_selected = item_text
 
-            if devices_selected in lspci_opd_name:
-                update_text_widget(text_widget, )
+            if lspci_selected in lspci_opd_name:
+                update_text_widget(text_widget, command(lspci_selected + device_selected))
+            elif lspci_selected in lspic_op_name:
+                update_text_widget(text_widget, command(lspci_selected))
 
     def setpci_select(event):
         global setpci_selected
@@ -74,13 +75,18 @@ def main_window():
             item_text = event.widget.item(selected_item, 'text')
             setpci_selected = item_text
 
-    def devices_select(event):
-        global devices_selected
+    def device_select(event):
+        global device_selected
         selected_item = event.widget.selection()
 
         if selected_item:
             item_text = event.widget.item(selected_item, 'text')
-            devices_selected = item_text
+            device_selected = item_text
+
+            if lspci_selected in lspci_opd_name:
+                update_text_widget(text_widget, command(lspci_selected + device_selected))
+            elif lspci_selected in lspic_op_name:
+                update_text_widget(text_widget, command(lspci_selected))
 
     window = tk.Tk()
 
@@ -110,7 +116,7 @@ def main_window():
     create_scrollbar(container = devices_frame, widget = devices_tree, column = 1)
     devices_frame.grid(column = 1, row = 0, sticky = 'ns', rowspan = 2)
     devices_frame.grid_rowconfigure(0, weight = 1)
-    devices_tree.bind('<<TreeviewSelect>>', devices_select)
+    devices_tree.bind('<<TreeviewSelect>>', device_select)
     
     options_frame.grid(column = 0, row = 0, sticky = 'ns')
     #End
@@ -172,6 +178,10 @@ def update_text_widget(widget:object, info:str):
     widget.insert(tk.END, info)
     widget.config(state = 'disabled')
 
+lspci_selected = ''
+setpci_selected = ''
+device_selected = ''
+
 devices = pipe('lspci -vmm', 'grep -w Device')
 devices = devices.replace('Device:\t', '')
 devices_list = devices.split('\n')
@@ -182,8 +192,8 @@ slot_list = slot.split('\n')
 slot_list = list(filter(None, slot_list))
 
 #Device specific commands
-lspci_opd_name = ['lspci -v', 'lspci -vvv', 'lspci -nvmm', 'lspci -xxx']
-#lspici_opd_device = list(map(lambda item: item + main.devices_selected, lspci_opd_name))
+lspci_opd_name = ['lspci -vs', 'lspci -vvvs', 'lspci -nvmms', 'lspci -xxxs']
+lspici_opd_device = list(map(lambda item: item + device_selected, lspci_opd_name))
 lspci_opd_out = [command(option) for option in lspci_opd_name]
 
 #Non device specific commands
