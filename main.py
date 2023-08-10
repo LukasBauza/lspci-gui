@@ -96,7 +96,7 @@ def main_window():
         alt_row_colours(treeview = treeview)
 
     def device_search(event):
-        query = device_entry.get()
+        query = devices_entry.get()
         filter_treeview(devices_tree, query, slot_list)
 
     def highlight_text(query):
@@ -124,7 +124,7 @@ def main_window():
     #lspci commands listed frame/treeview.
     lspci_frame = create_frame(container = options_frame)
     lspci_tree = create_treeview(container = lspci_frame, heading = 'lspci Options', data = lspci_opd_name + lspic_op_name)
-    lspci_frame.grid(column = 0, row = 0, sticky = 'n')
+    lspci_frame.grid(column = 0, row = 0, sticky = 'ns')
     lspci_tree.bind('<<TreeviewSelect>>', lspci_select)
 
     #setpci commands listed frame/treeview.
@@ -133,16 +133,20 @@ def main_window():
     setpci_frame.grid(column = 0, row = 1, sticky = 'ns')
     setpci_tree.bind('<<TreeviewSelect>>', setpci_select)
 
+
     #Devices listed frame/treeview.
     devices_frame = create_frame(container = options_frame)
     devices_tree = create_treeview(container = devices_frame, heading = 'lspci Devices', data = slot_list)
     devices_frame.grid(column = 1, row = 0, sticky = 'ns', rowspan = 2)
     devices_frame.grid_rowconfigure(0, weight = 1)
     devices_tree.bind('<<TreeviewSelect>>', device_select)
-    device_entry = create_search(devices_frame, '<KeyRelease>', device_search)
-    device_entry.grid(column = 0, row = 1, sticky = 'ew')
-
+    devices_entry_frame = create_label_frame(container = devices_frame, text = 'Search Device')
+    devices_entry = create_search(devices_entry_frame, '<KeyRelease>', device_search)
+    devices_entry.grid(column = 0, row = 1, sticky = 'ew')
+    devices_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
+    devices_entry_frame.grid_columnconfigure(0, weight = 1)
     options_frame.grid(column = 0, row = 0, sticky = 'ns')
+    options_frame.grid_rowconfigure(0, weight = 1)
     #End: Options Frame
 
     #Start: Text widget frame for terminal.
@@ -151,14 +155,24 @@ def main_window():
     terminal = tk.Text(terminal_frame, state = 'disabled')
     create_scrollbar(container = terminal_frame, widget = terminal, column = 1)
     terminal.grid(column = 0, row = 0, sticky = 'ns')
-    terminal_frame.grid(column = 1, row = 0, sticky = 'ns')
-    terminal_entry = create_search(terminal_frame, '<KeyRelease>', terminal_search)
-    terminal.tag_configure("search", background = "yellow")
+    terminal_entry_frame = create_label_frame(terminal_frame, 'Search Terminal')
+    terminal_entry = create_search(terminal_entry_frame, '<KeyRelease>', terminal_search)
+    terminal.tag_configure("search", background = "light blue")
     terminal_entry.grid(column = 0, row = 1, sticky = 'ew')
-
+    terminal_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
+    terminal_entry_frame.grid_columnconfigure(0, weight = 1)
+    terminal_frame.grid(column = 1, row = 0, sticky = 'ns')
     terminal_frame.grid_rowconfigure(0, weight = 1)
     #End: Text widget frame for terminal.
 
+    #Start: Enter custom command frame.
+    command_entry_frame = create_label_frame(container = window, text = 'Enter Command')
+    command_entry = ttk.Entry(command_entry_frame)
+    command_entry.grid(column = 0, row = 0, sticky = 'ew')
+    command_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
+    command_entry_frame.grid_columnconfigure(0, weight = 1)
+    #End: Enter Custom command frame.
+    
     window.mainloop()
 
 def create_frame(container:object):
@@ -166,10 +180,20 @@ def create_frame(container:object):
 
     #Styling for the frame
     style = ttk.Style()
-    style.configure('frame_style.TFrame', borderwidth = 2, relief = 'groove')
+    style.configure('frame_style.TFrame', borderwidth = 2, relief = 'sunken')
     frame.configure(style = 'frame_style.TFrame')
 
     return frame
+
+def create_label_frame(container:object, text:str):
+    label_frame = ttk.LabelFrame(container, text = text)
+
+    #Styling for the frame
+    style = ttk.Style()
+    style.configure('frame_style.TFrame', borderwidth = 2, relief = 'groove', font = ('bold'))
+    label_frame.configure(style = 'frame_style.TFrame')
+
+    return label_frame
 
 def create_treeview(container:object, heading:str, data:list = []):
     treeview = ttk.Treeview(container)
