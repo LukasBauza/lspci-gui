@@ -2,20 +2,32 @@
 Main file that will combine the data and the GUI.
 '''
 
-
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, simpledialog
 import subprocess
 
-
+sudo_password = ''
  
 def command(command:str, input:str = None):
-    command = command.split()
-    
-    data = subprocess.run(command, capture_output = True, text = True, input = input) 
-    
+    if sudo_password:
+        data = sudo_mode(command)
+    else:
+        command = command.split()
+        data = subprocess.run(command, capture_output = True, text = True, input = input) 
     return data.stdout
 
+def sudo_mode(insert_command:str):          #Note: This uses the shell = True option
+    if sudo_password:
+        command = f"echo '{sudo_password}' | sudo -S {insert_command}"
+        try:
+            output = subprocess.run(command, shell = True, capture_output= True, text=True)
+            print("Command executed successfully with sudo.")
+            return output
+        except subprocess.CalledProcessError as e:
+            print("Error executing command with sudo:", e)
+    else:
+        print("No sudo password entered.")
+    
 def pipe(command1:str, command2:str):
     command1 = command1.split()
     command2 = command2.split()
@@ -89,7 +101,7 @@ def main_window():
                 update_text_widget(terminal, command(lspci_selected))
 
     def filter_treeview(treeview, query, data):
-        treeview.delete(*treeview.get_children())  # Clear the treeview
+        treeview.delete(*treeview.get_children())  #Clear the treeview
         filtered_data = [item for item in data if query.lower() in item.lower()]
         for item in filtered_data:
             treeview.insert('', 'end', text = item)
@@ -115,16 +127,23 @@ def main_window():
          query = terminal_entry.get()
          highlight_text(query)
 
+    def get_custom_command(event):
+        custom_command = command_entry.get()
+        update_text_widget(terminal, command(custom_command))   #Note: The command doesnt take in |
 
+    def save_sudo():
+        global sudo_password
+        sudo_password = simpledialog.askstring('Sudo Password', 'Enter our sudo password:', show = '*')
+    
     window = tk.Tk()
 
-    #Start: Optioins Frame
+    #Start: Options Frame
     options_frame = create_frame(container = window)
 
     #lspci commands listed frame/treeview.
     lspci_frame = create_frame(container = options_frame)
     lspci_tree = create_treeview(container = lspci_frame, heading = 'lspci Options', data = lspci_opd_name + lspic_op_name)
-    lspci_frame.grid(column = 0, row = 0, sticky = 'ns')
+    lspci_frame.grid(column = 0, row = 0, sticky = 'n')
     lspci_tree.bind('<<TreeviewSelect>>', lspci_select)
 
     #setpci commands listed frame/treeview.
@@ -133,18 +152,19 @@ def main_window():
     setpci_frame.grid(column = 0, row = 1, sticky = 'ns')
     setpci_tree.bind('<<TreeviewSelect>>', setpci_select)
 
-
     #Devices listed frame/treeview.
     devices_frame = create_frame(container = options_frame)
     devices_tree = create_treeview(container = devices_frame, heading = 'lspci Devices', data = slot_list)
+    devices_tree.bind('<<TreeviewSelect>>', device_select)
     devices_frame.grid(column = 1, row = 0, sticky = 'ns', rowspan = 2)
     devices_frame.grid_rowconfigure(0, weight = 1)
-    devices_tree.bind('<<TreeviewSelect>>', device_select)
-    devices_entry_frame = create_label_frame(container = devices_frame, text = 'Search Device')
+    
+    devices_entry_frame = create_label_frame(devices_frame, 'Search Devices')
     devices_entry = create_search(devices_entry_frame, '<KeyRelease>', device_search)
-    devices_entry.grid(column = 0, row = 1, sticky = 'ew')
+    devices_entry.grid(column = 0, row = 0, sticky = 'ew')
     devices_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
-    devices_entry_frame.grid_columnconfigure(0, weight = 1)
+    devices_entry_frame.grid_columnconfigure(0, weight = 2)
+
     options_frame.grid(column = 0, row = 0, sticky = 'ns')
     options_frame.grid_rowconfigure(0, weight = 1)
     #End: Options Frame
@@ -155,24 +175,37 @@ def main_window():
     terminal = tk.Text(terminal_frame, state = 'disabled')
     create_scrollbar(container = terminal_frame, widget = terminal, column = 1)
     terminal.grid(column = 0, row = 0, sticky = 'ns')
+    terminal.tag_configure("search", background = "light blue")
+    
     terminal_entry_frame = create_label_frame(terminal_frame, 'Search Terminal')
     terminal_entry = create_search(terminal_entry_frame, '<KeyRelease>', terminal_search)
-    terminal.tag_configure("search", background = "light blue")
     terminal_entry.grid(column = 0, row = 1, sticky = 'ew')
     terminal_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
     terminal_entry_frame.grid_columnconfigure(0, weight = 1)
+    
     terminal_frame.grid(column = 1, row = 0, sticky = 'ns')
     terminal_frame.grid_rowconfigure(0, weight = 1)
     #End: Text widget frame for terminal.
 
-    #Start: Enter custom command frame.
-    command_entry_frame = create_label_frame(container = window, text = 'Enter Command')
+    #Start: Command entry frame.
+    command_entry_frame = create_label_frame(window, 'Enter Command')
     command_entry = ttk.Entry(command_entry_frame)
+    command_entry.bind('<Return>', get_custom_command)
     command_entry.grid(column = 0, row = 0, sticky = 'ew')
     command_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
     command_entry_frame.grid_columnconfigure(0, weight = 1)
-    #End: Enter Custom command frame.
-    
+    #End: Command entry frame.
+
+    #Start: Options
+    menu_bar = tk.Menu(window)
+    window['menu'] = menu_bar
+    menu_options = tk.Menu(menu_bar, tearoff = False)
+    menu_bar.add_cascade(menu = menu_options, label = 'Options')
+    menu_options.add_command(label = 'Save Terminal Data')
+    menu_options.add_command(label = 'Edit Custom Commands')
+    menu_options.add_command(label = 'Sudo Mode', command = save_sudo)
+    #End: Options
+
     window.mainloop()
 
 def create_frame(container:object):
@@ -180,18 +213,18 @@ def create_frame(container:object):
 
     #Styling for the frame
     style = ttk.Style()
-    style.configure('frame_style.TFrame', borderwidth = 2, relief = 'sunken')
+    style.configure('frame_style.TFrame', borderwidth = 2)
     frame.configure(style = 'frame_style.TFrame')
 
     return frame
 
-def create_label_frame(container:object, text:str):
-    label_frame = ttk.LabelFrame(container, text = text)
+def create_label_frame(container:object, title:str):
+    label_frame = ttk.Labelframe(container, text = title)
 
     #Styling for the frame
     style = ttk.Style()
-    style.configure('frame_style.TFrame', borderwidth = 2, relief = 'groove', font = ('bold'))
-    label_frame.configure(style = 'frame_style.TFrame')
+    style.configure('lf_style.TLabelframe.Label', font=("Helvetica", 10, "bold"))
+    label_frame.configure(style = 'lf_style.TLabelframe')
 
     return label_frame
 
