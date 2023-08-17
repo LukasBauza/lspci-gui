@@ -5,8 +5,11 @@ Main file that will combine the data and the GUI.
 import tkinter as tk
 from tkinter import ttk, simpledialog
 import subprocess
+import csv
+import os
 
 sudo_password = ''
+csv_data = []
  
 def command(command:str, input:str = None):
     if sudo_password:
@@ -56,6 +59,10 @@ def word_get_line(data:str, word:str):
     line = subprocess.run(command, capture_output = True, text = True, input = data)
 
     return line.stdout
+
+def retrieve_text(text_widget:object):
+    text = text_widget.get("1.0", "end-1c")  # Retrieve all text excluding the trailing newline character
+    print(text)
 
 def main_window():
 
@@ -129,6 +136,7 @@ def main_window():
 
     def get_custom_command(event):
         custom_command = command_entry.get()
+        command_entry.delete(0, "end")  # Clear the entry widget
         update_text_widget(terminal, command(custom_command))   #Note: The command doesnt take in |
 
     def save_sudo():
@@ -211,25 +219,48 @@ def main_window():
 def custom_window():
     window = tk.Tk()
 
-    def save_to_csv():
-        print('en')
+    csv_file_name = 'custom_commands.csv'
+    treeview_data = []
 
-    def load_csv():
-        print('en')
+    try:
+        with open(csv_file_name, mode='r') as file:
+            reader = csv.reader(file)
 
-    text_frame = create_frame(window)
-    text_widget = tk.Text(text_frame, width = 25, wrap = 'word')
-    create_scrollbar(container = text_frame, widget = text_widget, column = 1)
-    text_widget.grid(column = 0, row = 0)
-    text_frame.grid(column = 0, row = 0)
+            # Iterate through each row in the CSV file
+            for row in reader:
+                treeview_data.append(row[0])
 
-    button_frame = create_frame(window)
-    save_button = ttk.Button(button_frame, text = 'Save')
-    load_button = ttk.Button(button_frame, text = 'Load')
-    save_button.grid(column = 0, row = 0, sticky = 'ew')
-    load_button.grid(column = 0, row = 1, sticky = 'ew')
-    button_frame.grid(column = 0, row = 1, sticky = 'ew')
-    button_frame.grid_columnconfigure(0, weight = 1)
+    except FileNotFoundError:
+        print('File not found')
+
+    def save(event):
+        global treeview_custom
+        csv_add_data = []
+        if treeview_entry.get() != '':
+            csv_add_data.append(treeview_entry.get())
+            treeview_data.append(treeview_entry.get())
+            treeview_entry.delete(0, "end")
+
+            with open(csv_file_name, mode='a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(csv_add_data)
+                csv_add_data = []
+        
+            treeview_custom = create_treeview(container = treeview_frame, heading = 'Custom Commands', data = treeview_data)
+            
+    treeview_frame = create_frame(window)
+    treeview_custom = create_treeview(container = treeview_frame, heading = 'Custom Commands', data = treeview_data)
+    treeview_custom.grid(column = 0, row = 0)
+
+    entry_frame = create_label_frame(treeview_frame, 'Command to Save')
+    treeview_entry = ttk.Entry(entry_frame)
+    treeview_entry.bind('<Return>', save)
+    treeview_entry.grid(column = 0, row = 1, sticky = 'ew')
+    entry_frame.grid(column = 0, row = 1, sticky = 'ew')
+    entry_frame.grid_columnconfigure(0, weight = 1)
+    
+    treeview_frame.grid(column = 0, row = 0)
+
 
     window.mainloop()
 
