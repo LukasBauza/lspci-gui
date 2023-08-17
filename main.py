@@ -172,7 +172,7 @@ def main_window():
     #Start: Text widget frame for terminal.
     terminal_frame = create_frame(window)
 
-    terminal = tk.Text(terminal_frame, state = 'disabled')
+    terminal = tk.Text(terminal_frame, state = 'disabled', wrap = 'word')
     create_scrollbar(container = terminal_frame, widget = terminal, column = 1)
     terminal.grid(column = 0, row = 0, sticky = 'ns')
     terminal.tag_configure("search", background = "light blue")
@@ -202,9 +202,34 @@ def main_window():
     menu_options = tk.Menu(menu_bar, tearoff = False)
     menu_bar.add_cascade(menu = menu_options, label = 'Options')
     menu_options.add_command(label = 'Save Terminal Data')
-    menu_options.add_command(label = 'Edit Custom Commands')
+    menu_options.add_command(label = 'Edit Custom Commands', command = custom_window)
     menu_options.add_command(label = 'Sudo Mode', command = save_sudo)
     #End: Options
+
+    window.mainloop()
+
+def custom_window():
+    window = tk.Tk()
+
+    def save_to_csv():
+        print('en')
+
+    def load_csv():
+        print('en')
+
+    text_frame = create_frame(window)
+    text_widget = tk.Text(text_frame, width = 25, wrap = 'word')
+    create_scrollbar(container = text_frame, widget = text_widget, column = 1)
+    text_widget.grid(column = 0, row = 0)
+    text_frame.grid(column = 0, row = 0)
+
+    button_frame = create_frame(window)
+    save_button = ttk.Button(button_frame, text = 'Save')
+    load_button = ttk.Button(button_frame, text = 'Load')
+    save_button.grid(column = 0, row = 0, sticky = 'ew')
+    load_button.grid(column = 0, row = 1, sticky = 'ew')
+    button_frame.grid(column = 0, row = 1, sticky = 'ew')
+    button_frame.grid_columnconfigure(0, weight = 1)
 
     window.mainloop()
 
