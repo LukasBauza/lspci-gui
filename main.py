@@ -94,6 +94,8 @@ def main_window():
             item_text = event.widget.item(selected_item, 'text')
             setpci_selected = item_text
 
+            update_text_widget(terminal, command(item_text))
+
     def device_select(event):
         global device_selected
         selected_item = event.widget.selection()
@@ -147,6 +149,10 @@ def main_window():
 
     #Start: Options Frame
     options_frame = create_frame(container = window)
+
+    #Custom commands listed frame/treeview.
+    custom_frame = create_frame(container = options_frame)
+    custom_tree = create_treeview(container = custom_frame, heading = 'Custom Commands', data = csv_data)
 
     #lspci commands listed frame/treeview.
     lspci_frame = create_frame(container = options_frame)
@@ -220,47 +226,63 @@ def custom_window():
     window = tk.Tk()
 
     csv_file_name = 'custom_commands.csv'
-    treeview_data = []
+    new_data = []
 
-    try:
-        with open(csv_file_name, mode='r') as file:
-            reader = csv.reader(file)
+    def load_csv():
+        try:
+            with open(csv_file_name, mode='r') as file:
+                reader = csv.reader(file)
+                # Iterate through each row in the CSV file
+                for row in reader:
+                    treeview_data.insert('', 'end', values = row)
+        except FileNotFoundError:
+            print('No custom_commands.csv, creating custom_commands.csv')
 
-            # Iterate through each row in the CSV file
-            for row in reader:
-                treeview_data.append(row[0])
-
-    except FileNotFoundError:
-        print('File not found')
-
-    def save(event):
-        global treeview_custom
-        csv_add_data = []
+    def add_data(event):
         if treeview_entry.get() != '':
-            csv_add_data.append(treeview_entry.get())
-            treeview_data.append(treeview_entry.get())
-            treeview_entry.delete(0, "end")
+            new_data.append(treeview_entry.get())
+            treeview_data.insert('', 'end', values = new_data)
+            treeview_entry.delete(0, 'end')
 
-            with open(csv_file_name, mode='a', newline='') as file:
+            with open(csv_file_name, 'a', newline='') as file:
                 writer = csv.writer(file)
-                writer.writerow(csv_add_data)
-                csv_add_data = []
-        
-            treeview_custom = create_treeview(container = treeview_frame, heading = 'Custom Commands', data = treeview_data)
-            
+                writer.writerow(new_data)
+                new_data.clear()
+
+    def remove_item(event):
+        selected_items = treeview_data.selection()
+        for item in selected_items:
+            values = treeview_data.item(item, "values")
+            treeview_data.delete(item)
+
+            # Update CSV file by rewriting the file without the deleted row
+            with open(csv_file_name, "r") as file:
+                lines = file.readlines()
+
+            with open(csv_file_name, "w", newline="") as file:
+                writer = csv.writer(file)
+                for line in lines:
+                    if line.strip() != values[0]:
+                        writer.writerow([line.strip()])
+
     treeview_frame = create_frame(window)
-    treeview_custom = create_treeview(container = treeview_frame, heading = 'Custom Commands', data = treeview_data)
-    treeview_custom.grid(column = 0, row = 0)
+    treeview_data= ttk.Treeview(treeview_frame, columns=("Data"), show="headings")
+    treeview_data.heading("Data", text="Data")
+    create_scrollbar(container = treeview_frame, widget = treeview_data, column = 1)
+    alt_row_colours(treeview = treeview_data)
+    treeview_data.grid(column = 0, row = 0)
+    treeview_data.bind("<BackSpace>", remove_item)
 
     entry_frame = create_label_frame(treeview_frame, 'Command to Save')
     treeview_entry = ttk.Entry(entry_frame)
-    treeview_entry.bind('<Return>', save)
+    treeview_entry.bind('<Return>', add_data)
     treeview_entry.grid(column = 0, row = 1, sticky = 'ew')
     entry_frame.grid(column = 0, row = 1, sticky = 'ew')
     entry_frame.grid_columnconfigure(0, weight = 1)
     
     treeview_frame.grid(column = 0, row = 0)
 
+    load_csv()
 
     window.mainloop()
 
