@@ -243,6 +243,7 @@ def custom_window():
             new_data.append(treeview_entry.get())
             treeview_data.insert('', 'end', values = new_data)
             treeview_entry.delete(0, 'end')
+            alt_row_colours(treeview = treeview_data)
 
             with open(csv_file_name, 'a', newline='') as file:
                 writer = csv.writer(file)
@@ -254,6 +255,7 @@ def custom_window():
         for item in selected_items:
             values = treeview_data.item(item, "values")
             treeview_data.delete(item)
+            alt_row_colours(treeview = treeview_data)
 
             # Update CSV file by rewriting the file without the deleted row
             with open(csv_file_name, "r") as file:
@@ -266,10 +268,9 @@ def custom_window():
                         writer.writerow([line.strip()])
 
     treeview_frame = create_frame(window)
-    treeview_data= ttk.Treeview(treeview_frame, columns=("Data"), show="headings")
+    treeview_data= ttk.Treeview(treeview_frame, columns=("Data"), show="headings")      #Couldnt use the create_treeview function as it returns a frame (cant edit data)
     treeview_data.heading("Data", text="Data")
     create_scrollbar(container = treeview_frame, widget = treeview_data, column = 1)
-    alt_row_colours(treeview = treeview_data)
     treeview_data.grid(column = 0, row = 0)
     treeview_data.bind("<BackSpace>", remove_item)
 
