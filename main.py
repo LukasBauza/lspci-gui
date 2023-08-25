@@ -5,12 +5,12 @@ Main file that will combine the data and the GUI.
 import tkinter as tk
 from tkinter import ttk, simpledialog
 import subprocess
-import csv
-import os
+
 
 sudo_password = ''
 csv_data = []
- 
+
+
 def command(command:str, input:str = None):
     if sudo_password:
         data = sudo_mode(command)
@@ -18,6 +18,7 @@ def command(command:str, input:str = None):
         command = command.split()
         data = subprocess.run(command, capture_output = True, text = True, input = input) 
     return data.stdout
+
 
 def sudo_mode(insert_command:str):          #Note: This uses the shell = True option
     if sudo_password:
@@ -31,6 +32,7 @@ def sudo_mode(insert_command:str):          #Note: This uses the shell = True op
     else:
         print("No sudo password entered.")
     
+
 def pipe(command1:str, command2:str):
     command1 = command1.split()
     command2 = command2.split()
@@ -41,6 +43,7 @@ def pipe(command1:str, command2:str):
 
     return command.stdout
 
+
 def index_get_paragragh(data:str, select:int):
     command = ['awk', '-v', 'RS=', '-v', 'ORS=', 'NR==' + str(select + 1)]
 
@@ -48,11 +51,13 @@ def index_get_paragragh(data:str, select:int):
 
     return paragraph.stdout
 
+
 def word_get_paragraph(data:str, word:str):
     command = ['awk', '-v', 'RS=', f'/\\y{word}\\y/']
     paragraph = subprocess.run(command, capture_output = True, text = True, input = data)
 
     return paragraph.stdout
+
 
 def word_get_line(data:str, word:str):
     command = ['grep', '-w', f'{word}']
@@ -60,9 +65,11 @@ def word_get_line(data:str, word:str):
 
     return line.stdout
 
+
 def retrieve_text(text_widget:object):
     text = text_widget.get("1.0", "end-1c")  # Retrieve all text excluding the trailing newline character
     print(text)
+
 
 def main_window():
 
@@ -83,6 +90,7 @@ def main_window():
             elif lspci_selected in lspic_op_name:
                 update_text_widget(terminal, command(lspci_selected))
 
+
     def setpci_select(event):
         global setpci_selected
         selected_item = event.widget.selection()
@@ -95,6 +103,7 @@ def main_window():
             setpci_selected = item_text
 
             update_text_widget(terminal, command(item_text))
+
 
     def device_select(event):
         global device_selected
@@ -109,6 +118,7 @@ def main_window():
             elif lspci_selected in lspic_op_name:
                 update_text_widget(terminal, command(lspci_selected))
 
+
     def filter_treeview(treeview, query, data):
         treeview.delete(*treeview.get_children())  #Clear the treeview
         filtered_data = [item for item in data if query.lower() in item.lower()]
@@ -116,9 +126,11 @@ def main_window():
             treeview.insert('', 'end', text = item)
         alt_row_colours(treeview = treeview)
 
+
     def device_search(event):
         query = devices_entry.get()
         filter_treeview(devices_tree, query, slot_list)
+
 
     def highlight_text(query):
         terminal.tag_remove("search", "1.0", tk.END)
@@ -136,10 +148,12 @@ def main_window():
          query = terminal_entry.get()
          highlight_text(query)
 
+
     def get_custom_command(event):
         custom_command = command_entry.get()
         command_entry.delete(0, "end")  # Clear the entry widget
         update_text_widget(terminal, command(custom_command))   #Note: The command doesnt take in |
+
 
     def save_sudo():
         global sudo_password
@@ -222,11 +236,13 @@ def main_window():
 
     window.mainloop()
 
+
 def custom_window():
     window = tk.Tk()
 
     csv_file_name = 'custom_commands.csv'
     new_data = []
+
 
     def load_csv():
         try:
@@ -237,6 +253,7 @@ def custom_window():
                     treeview_data.insert('', 'end', values = row)
         except FileNotFoundError:
             print('No custom_commands.csv, creating custom_commands.csv')
+
 
     def add_data(event):
         if treeview_entry.get() != '':
@@ -249,6 +266,7 @@ def custom_window():
                 writer = csv.writer(file)
                 writer.writerow(new_data)
                 new_data.clear()
+
 
     def remove_item(event):
         selected_items = treeview_data.selection()
@@ -287,6 +305,7 @@ def custom_window():
 
     window.mainloop()
 
+
 def create_frame(container:object):
     frame = ttk.Frame(container)
 
@@ -297,6 +316,7 @@ def create_frame(container:object):
 
     return frame
 
+
 def create_label_frame(container:object, title:str):
     label_frame = ttk.Labelframe(container, text = title)
 
@@ -306,6 +326,7 @@ def create_label_frame(container:object, title:str):
     label_frame.configure(style = 'lf_style.TLabelframe')
 
     return label_frame
+
 
 def create_treeview(container:object, heading:str, data:list = []):
     treeview = ttk.Treeview(container)
@@ -321,11 +342,13 @@ def create_treeview(container:object, heading:str, data:list = []):
     
     return treeview
 
+
 def create_scrollbar(container:object, widget:object, column:int):
     scrollbar = ttk.Scrollbar(container, orient = tk.VERTICAL, command = widget.yview)
     scrollbar.grid(column = column, row = 0, sticky = 'ns')
 
     widget.configure(yscrollcommand = scrollbar.set)
+
 
 def alt_row_colours(treeview:object):
     tag_even = 'even'
@@ -338,11 +361,13 @@ def alt_row_colours(treeview:object):
         tag = tag_even if index % 2 == 0 else tag_odd
         treeview.item(item_id, tags = tag)
 
+
 def update_text_widget(widget:object, info:str):
     widget.config(state = 'normal')
     widget.delete('1.0', tk.END)
     widget.insert(tk.END, info)
     widget.config(state = 'disabled')
+
 
 def create_search(container:object, event:str, command):
     search = ttk.Entry(container)
