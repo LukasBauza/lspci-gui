@@ -5,7 +5,7 @@ Main file that will combine the data and the GUI.
 import tkinter as tk
 from tkinter import ttk, simpledialog
 import subprocess
-
+import csv
 
 sudo_password = ''
 csv_data = []
@@ -74,7 +74,7 @@ def retrieve_text(text_widget:object):
 def main_window():
 
     def lspci_select(event):
-        global lspci_selected
+        global command_selected
         selected_item = event.widget.selection()
 
         #True if selected_item is from the right treeview widget, since all functions get called
@@ -83,16 +83,16 @@ def main_window():
             setpci_tree.selection_remove(setpci_tree.selection())
 
             item_text = event.widget.item(selected_item, 'text')
-            lspci_selected = item_text
+            command_selected = item_text
 
-            if lspci_selected in lspci_opd_name:
-                update_text_widget(terminal, command(lspci_selected + device_selected))
-            elif lspci_selected in lspic_op_name:
-                update_text_widget(terminal, command(lspci_selected))
+            if command_selected in lspci_opd_name:
+                update_text_widget(terminal, command(command_selected + device_selected))
+            elif command_selected in lspic_op_name:
+                update_text_widget(terminal, command(command_selected))
 
 
     def setpci_select(event):
-        global setpci_selected
+        global command_selected, device_selected
         selected_item = event.widget.selection()
 
         if selected_item:
@@ -100,17 +100,18 @@ def main_window():
             devices_tree.selection_remove(devices_tree.selection())
 
             item_text = event.widget.item(selected_item, 'text')
-            setpci_selected = item_text
+            command_selected = item_text
+            device_selected = ""
 
             update_text_widget(terminal, command(item_text))
 
 
     def device_select(event):
         global device_selected
-        selected_item = event.widget.selection()
+        selected_item = event.widget.selection()[0]
 
         if selected_item:
-            item_text = event.widget.item(selected_item, 'text')
+            item_text = event.widget.item(selected_item, 'values')[0]
             device_selected = item_text
 
             if lspci_selected in lspci_opd_name:
@@ -119,17 +120,15 @@ def main_window():
                 update_text_widget(terminal, command(lspci_selected))
 
 
-    def filter_treeview(treeview, query, data):
-        treeview.delete(*treeview.get_children())  #Clear the treeview
-        filtered_data = [item for item in data if query.lower() in item.lower()]
-        for item in filtered_data:
-            treeview.insert('', 'end', text = item)
-        alt_row_colours(treeview = treeview)
-
-
     def device_search(event):
         query = devices_entry.get()
-        filter_treeview(devices_tree, query, slot_list)
+
+        devices_tree.delete(*devices_tree.get_children())
+
+        for item in slot_vendor:
+            if query.lower() in item[0].lower() or query.lower() in item[1].lower():
+                devices_tree.insert("", "end", values=item)
+        alt_row_colours(devices_tree)
 
 
     def highlight_text(query):
@@ -180,12 +179,19 @@ def main_window():
     setpci_frame.grid(column = 0, row = 1, sticky = 'ns')
     setpci_tree.bind('<<TreeviewSelect>>', setpci_select)
 
-    #Devices listed frame/treeview.
     devices_frame = create_frame(container = options_frame)
-    devices_tree = create_treeview(container = devices_frame, heading = 'lspci Devices', data = slot_list)
-    devices_tree.bind('<<TreeviewSelect>>', device_select)
-    devices_frame.grid(column = 1, row = 0, sticky = 'ns', rowspan = 2)
-    devices_frame.grid_rowconfigure(0, weight = 1)
+    # cant use create_treeview as 2 columns is needed
+    # show="headings", stops the default column from shownig (#0)
+    devices_tree = ttk.Treeview(devices_frame, columns=("Slot", "Vendor"), show="headings")
+    devices_tree.heading("Slot", text="Slot") 
+    devices_tree.heading("Vendor", text="Vendor")
+    for item in slot_vendor:
+        devices_tree.insert("", "end", values=item)
+    alt_row_colours(devices_tree)
+    devices_tree.grid(column = 0, row=0, sticky="ns")
+    devices_frame.grid(column = 1, row = 0, sticky = "ns", rowspan=2)
+    devices_frame.grid_rowconfigure(0, weight=1)
+    devices_tree.bind("<<TreeviewSelect>>", device_select)
     
     devices_entry_frame = create_label_frame(devices_frame, 'Search Devices')
     devices_entry = create_search(devices_entry_frame, '<KeyRelease>', device_search)
@@ -252,7 +258,7 @@ def custom_window():
                 for row in reader:
                     treeview_data.insert('', 'end', values = row)
         except FileNotFoundError:
-            print('No custom_commands.csv, creating custom_commands.csv')
+            print('No custom_commands.csv, creating custom_commands.csv once a command is saved')
 
 
     def add_data(event):
@@ -286,8 +292,8 @@ def custom_window():
                         writer.writerow([line.strip()])
 
     treeview_frame = create_frame(window)
-    treeview_data= ttk.Treeview(treeview_frame, columns=("Data"), show="headings")      #Couldnt use the create_treeview function as it returns a frame (cant edit data)
-    treeview_data.heading("Data", text="Data")
+    treeview_data= ttk.Treeview(treeview_frame, columns=("Commands"), show="headings")      #Couldnt use the create_treeview function as it returns a frame (cant edit data)
+    treeview_data.heading("Commands", text="Custom Commands")
     create_scrollbar(container = treeview_frame, widget = treeview_data, column = 1)
     treeview_data.grid(column = 0, row = 0)
     treeview_data.bind("<BackSpace>", remove_item)
@@ -384,9 +390,21 @@ devices = devices.replace('Device:\t', '')
 devices_list = devices.split('\n')
 devices_list = list(filter(None, devices_list))    #Removes empty items in list.
 
-slot = pipe('lspci -vvv', 'awk -v RS= {print$1}')
+slot = pipe('lspci -vvv', 'awk -v RS= {print$1}')    # Cant use grep as ther are 2 Device rows
 slot_list = slot.split('\n')
 slot_list = list(filter(None, slot_list))
+nested_slot = [[item] for item in slot_list]
+
+vendor = pipe("lspci -vmm", "grep -w Vendor")
+vendor = vendor.replace('Vendor:\t', '')
+vendor_list = vendor.split("\n")
+vendor_list = list(filter(None, vendor_list))
+nested_vendor = [[item] for item in vendor_list]
+
+slot_vendor = nested_slot
+for index in range(len(nested_slot)):
+    slot_vendor[index].append(vendor_list[index])
+    slot_vendor[index] = tuple(slot_vendor[index])
 
 #Device specific commands
 lspci_opd_name = ['lspci -vs', 'lspci -vvvs', 'lspci -nvmms', 'lspci -xxxs']
