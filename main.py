@@ -81,6 +81,7 @@ def main_window():
         #once an item is selected from a treeview
         if selected_item:
             setpci_tree.selection_remove(setpci_tree.selection())
+            custom_tree.selection_remove(custom_tree.selection())
 
             item_text = event.widget.item(selected_item, 'text')
             command_selected = item_text
@@ -98,12 +99,14 @@ def main_window():
         if selected_item:
             lspci_tree.selection_remove(lspci_tree.selection())
             devices_tree.selection_remove(devices_tree.selection())
+            custom_tree.selection_remove(custom_tree.selection())
 
             item_text = event.widget.item(selected_item, 'text')
             command_selected = item_text
             device_selected = ""
+            print(command_selected)
 
-            update_text_widget(terminal, command(item_text))
+            update_text_widget(terminal, command(command_selected))
 
 
     def device_select(event):
@@ -111,13 +114,37 @@ def main_window():
         selected_item = event.widget.selection()[0]
 
         if selected_item:
+            custom_tree.selection_remove(custom_tree.selection())
+
             item_text = event.widget.item(selected_item, 'values')[0]
             device_selected = item_text
 
-            if lspci_selected in lspci_opd_name:
-                update_text_widget(terminal, command(lspci_selected + device_selected))
-            elif lspci_selected in lspic_op_name:
-                update_text_widget(terminal, command(lspci_selected))
+            if command_selected in lspci_opd_name:
+                update_text_widget(terminal, command(command_selected + device_selected))
+            elif command_selected in lspic_op_name:
+                update_text_widget(terminal, command(command_selected))
+
+
+   # def custom_selected(event):
+   #     selected_command =  event.widget.selection()
+   #     command_text = event.widget.item(selected_command, 'text')
+   #     print(command_text)
+
+   #     update_text_widget(terminal, command(selected_command))
+
+    def custom_selected(event):
+        selected_item = event.widget.selection()
+
+        if selected_item:
+            setpci_tree.selection_remove(setpci_tree.selection())
+            lspci_tree.selection_remove(lspci_tree.selection())
+            devices_tree.selection_remove(devices_tree.selection())
+
+            command_selected = event.widget.item(selected_item, 'values')
+            command_selected = command_selected[0]
+            print(command_selected)
+            
+            update_text_widget(terminal, command(command_selected))
 
 
     def device_search(event):
@@ -158,14 +185,57 @@ def main_window():
         global sudo_password
         sudo_password = simpledialog.askstring('Sudo Password', 'Enter our sudo password:', show = '*')
     
+    # Start custom_commands/csv file methods
+    csv_file_name = 'custom_commands.csv'
+    new_data = []
+
+    def load_csv():
+        try:
+            with open(csv_file_name, mode='r') as file:
+                reader = csv.reader(file)
+                # Iterate through each row in the CSV file
+                for row in reader:
+                    custom_tree.insert('', 'end', values = row)           # Treeview in custom_window
+            alt_row_colours(treeview = custom_tree)
+        except FileNotFoundError:
+            print('No custom_commands.csv, creating custom_commands.csv once a command is saved')
+
+
+    def add_data(event):
+        if custom_entry.get() != '':
+            new_data.append(custom_entry.get())
+            custom_tree.insert('', 'end', values = new_data)
+            custom_entry.delete(0, 'end')
+            alt_row_colours(treeview = custom_tree)
+
+            with open(csv_file_name, 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(new_data)
+                new_data.clear()
+
+
+    def remove_item(event):
+        selected_items = custom_tree.selection()
+        for item in selected_items:
+            values = custom_tree.item(item, "values")
+            custom_tree.delete(item)
+            alt_row_colours(treeview = custom_tree)
+
+            # Update CSV file by rewriting the file without the deleted row
+            with open(csv_file_name, "r") as file:
+                lines = file.readlines()
+
+            with open(csv_file_name, "w", newline="") as file:
+                writer = csv.writer(file)
+                for line in lines:
+                    if line.strip() != values[0]:
+                        writer.writerow([line.strip()])
+    # End custom_commands/csv file methods
+
     window = tk.Tk()
 
     #Start: Options Frame
     options_frame = create_frame(container = window)
-
-    #Custom commands listed frame/treeview.
-    custom_frame = create_frame(container = options_frame)
-    custom_tree = create_treeview(container = custom_frame, heading = 'Custom Commands', data = csv_data)
 
     #lspci commands listed frame/treeview.
     lspci_frame = create_frame(container = options_frame)
@@ -185,9 +255,12 @@ def main_window():
     devices_tree = ttk.Treeview(devices_frame, columns=("Slot", "Vendor"), show="headings")
     devices_tree.heading("Slot", text="Slot") 
     devices_tree.heading("Vendor", text="Vendor")
+    devices_tree.column("Slot", width = 100)
+    devices_tree.column("Vendor", width = 500)
     for item in slot_vendor:
         devices_tree.insert("", "end", values=item)
     alt_row_colours(devices_tree)
+    create_scrollbar(container = devices_frame, widget = devices_tree, column = 1)
     devices_tree.grid(column = 0, row=0, sticky="ns")
     devices_frame.grid(column = 1, row = 0, sticky = "ns", rowspan=2)
     devices_frame.grid_rowconfigure(0, weight=1)
@@ -220,6 +293,28 @@ def main_window():
     terminal_frame.grid(column = 1, row = 0, sticky = 'ns')
     terminal_frame.grid_rowconfigure(0, weight = 1)
     #End: Text widget frame for terminal.
+    
+    # Start: Custom commands treeview widget
+    custom_frame = create_frame(window)
+    custom_tree= ttk.Treeview(custom_frame, columns=("Commands"), show="headings")      #Couldnt use the create_treeview function as it returns a frame (cant edit data)
+    custom_tree.heading("Commands", text="Custom Commands")
+    create_scrollbar(container = custom_frame, widget = custom_tree, column = 1)
+    custom_tree.grid(column = 0, row = 0, sticky = 'ns')
+    custom_tree.bind("<BackSpace>", remove_item)
+    custom_tree.bind("<Double-1>", custom_selected)
+
+    entry_frame = create_label_frame(custom_frame, 'Command to Save')
+    custom_entry = ttk.Entry(entry_frame)
+    custom_entry.bind('<Return>', add_data)
+    custom_entry.grid(column = 0, row = 1, sticky = 'ew')
+    entry_frame.grid(column = 0, row = 1, sticky = 'ew')
+    entry_frame.grid_columnconfigure(0, weight = 1)
+    
+    custom_frame.grid(column = 2, row = 0, sticky = 'ns')
+    custom_frame.grid_rowconfigure(0, weight = 1)
+
+    load_csv()
+    # End: Custom commands treeview widget
 
     #Start: Command entry frame.
     command_entry_frame = create_label_frame(window, 'Enter Command')
@@ -236,78 +331,9 @@ def main_window():
     menu_options = tk.Menu(menu_bar, tearoff = False)
     menu_bar.add_cascade(menu = menu_options, label = 'Options')
     menu_options.add_command(label = 'Save Terminal Data')
-    menu_options.add_command(label = 'Edit Custom Commands', command = custom_window)
+    #menu_options.add_command(label = 'Edit Custom Commands', command = custom_window)
     menu_options.add_command(label = 'Sudo Mode', command = save_sudo)
     #End: Options
-
-    window.mainloop()
-
-
-def custom_window():
-    window = tk.Tk()
-
-    csv_file_name = 'custom_commands.csv'
-    new_data = []
-
-
-    def load_csv():
-        try:
-            with open(csv_file_name, mode='r') as file:
-                reader = csv.reader(file)
-                # Iterate through each row in the CSV file
-                for row in reader:
-                    treeview_data.insert('', 'end', values = row)
-        except FileNotFoundError:
-            print('No custom_commands.csv, creating custom_commands.csv once a command is saved')
-
-
-    def add_data(event):
-        if treeview_entry.get() != '':
-            new_data.append(treeview_entry.get())
-            treeview_data.insert('', 'end', values = new_data)
-            treeview_entry.delete(0, 'end')
-            alt_row_colours(treeview = treeview_data)
-
-            with open(csv_file_name, 'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerow(new_data)
-                new_data.clear()
-
-
-    def remove_item(event):
-        selected_items = treeview_data.selection()
-        for item in selected_items:
-            values = treeview_data.item(item, "values")
-            treeview_data.delete(item)
-            alt_row_colours(treeview = treeview_data)
-
-            # Update CSV file by rewriting the file without the deleted row
-            with open(csv_file_name, "r") as file:
-                lines = file.readlines()
-
-            with open(csv_file_name, "w", newline="") as file:
-                writer = csv.writer(file)
-                for line in lines:
-                    if line.strip() != values[0]:
-                        writer.writerow([line.strip()])
-
-    treeview_frame = create_frame(window)
-    treeview_data= ttk.Treeview(treeview_frame, columns=("Commands"), show="headings")      #Couldnt use the create_treeview function as it returns a frame (cant edit data)
-    treeview_data.heading("Commands", text="Custom Commands")
-    create_scrollbar(container = treeview_frame, widget = treeview_data, column = 1)
-    treeview_data.grid(column = 0, row = 0)
-    treeview_data.bind("<BackSpace>", remove_item)
-
-    entry_frame = create_label_frame(treeview_frame, 'Command to Save')
-    treeview_entry = ttk.Entry(entry_frame)
-    treeview_entry.bind('<Return>', add_data)
-    treeview_entry.grid(column = 0, row = 1, sticky = 'ew')
-    entry_frame.grid(column = 0, row = 1, sticky = 'ew')
-    entry_frame.grid_columnconfigure(0, weight = 1)
-    
-    treeview_frame.grid(column = 0, row = 0)
-
-    load_csv()
 
     window.mainloop()
 
