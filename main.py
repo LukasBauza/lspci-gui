@@ -12,7 +12,7 @@ csv_data = []
 
 
 def command(command:str, input:str = None):
-    """Executes a bash command containing no |.
+    """Executes a bash command containing no pipe (|).
     
     Parameters
     commmand : str
@@ -27,8 +27,8 @@ def command(command:str, input:str = None):
     if sudo_password:
         data = sudo_mode(command)
     else:
-        command = command.split()
-        data = subprocess.run(command, capture_output = True, text = True, input = input) 
+        data = subprocess.run(command, shell = True, capture_output = True, text = True, input = input) 
+
     return data.stdout
 
 
@@ -159,7 +159,7 @@ def main_window():
         selected_item = event.widget.selection()
 
         #True if selected_item is from the right treeview widget, since all functions get called
-        #once an item is selected from a treeview
+        #once an item is selected from a treeview this is because it works on a frame.
         if selected_item:
             setpci_tree.selection_remove(setpci_tree.selection())
             custom_tree.selection_remove(custom_tree.selection())
@@ -167,7 +167,7 @@ def main_window():
             item_text = event.widget.item(selected_item, 'text')
             command_selected = item_text
 
-            if command_selected in lspci_opd_name:
+            if command_selected in lspci_opd_name and device_selected != "":
                 update_text_widget(terminal, command(command_selected + device_selected))
             elif command_selected in lspic_op_name:
                 update_text_widget(terminal, command(command_selected))
@@ -184,20 +184,22 @@ def main_window():
         Returns
 
         """
-        global command_selected, device_selected
+        global command_selected, device_selected, setpci_option
         selected_item = event.widget.selection()
 
         if selected_item:
             lspci_tree.selection_remove(lspci_tree.selection())
-            devices_tree.selection_remove(devices_tree.selection())
+            #devices_tree.selection_remove(devices_tree.selection())
             custom_tree.selection_remove(custom_tree.selection())
 
-            item_text = event.widget.item(selected_item, 'text')
-            command_selected = item_text
-            device_selected = ""
-            print(command_selected)
-
-            update_text_widget(terminal, command(command_selected))
+            command_selected = event.widget.item(selected_item, 'text')
+            #device_selected = ""
+            if command_selected in setpci_opd_name and device_selected != "":
+                setpci_option = simpledialog.askstring('Config setpci', 'Enter configuration for selected device:') 
+                update_text_widget(terminal, command(command_selected + device_selected + " " + setpci_option))
+                print(command_selected + device_selected + " " + setpci_option)
+            elif command_selected in setpci_op_name:
+                update_text_widget(terminal, command(command_selected))
 
 
     def device_select(event):
@@ -211,19 +213,21 @@ def main_window():
         Returns
 
         """
-        global device_selected
+        global device_selected, setpci_option
         selected_item = event.widget.selection()[0]
 
         if selected_item:
             custom_tree.selection_remove(custom_tree.selection())
 
-            item_text = event.widget.item(selected_item, 'values')[0]
-            device_selected = item_text
+            device_selected = event.widget.item(selected_item, 'values')[0]
 
             if command_selected in lspci_opd_name:
                 update_text_widget(terminal, command(command_selected + device_selected))
             elif command_selected in lspic_op_name:
                 update_text_widget(terminal, command(command_selected))
+            elif command_selected in setpci_opd_name and device_selected != "":
+                setpci_option = simpledialog.askstring('Config setpci', 'Enter configuration for selected device:') 
+                update_text_widget(terminal, command(command_selected + device_selected + " " + setpci_option))
 
 
     def custom_selected(event):
@@ -243,10 +247,10 @@ def main_window():
             setpci_tree.selection_remove(setpci_tree.selection())
             lspci_tree.selection_remove(lspci_tree.selection())
             devices_tree.selection_remove(devices_tree.selection())
+            device_selected = ""
 
             command_selected = event.widget.item(selected_item, 'values')
             command_selected = command_selected[0]
-            print(command_selected)
             
             update_text_widget(terminal, command(command_selected))
 
@@ -349,7 +353,7 @@ def main_window():
 
     #setpci commands listed frame/treeview.
     setpci_frame = create_frame(container = options_frame)
-    setpci_tree = create_treeview(container = setpci_frame, heading = 'setpci Options', data = setpci_op_name)
+    setpci_tree = create_treeview(container = setpci_frame, heading = 'setpci Options', data = setpci_op_name + setpci_opd_name)
     setpci_frame.grid(column = 0, row = 1, sticky = 'ns')
     setpci_tree.bind('<<TreeviewSelect>>', setpci_select)
 
@@ -538,6 +542,8 @@ for index in range(len(nested_slot)):
 
 #Device specific commands
 lspci_opd_name = ['lspci -vs', 'lspci -vvvs', 'lspci -nvmms', 'lspci -xxxs']
+
+setpci_opd_name = ['setpci -v -s ', 'setpci -vD -s ']
 
 #Non device specific commands
 lspic_op_name  = ['lspci -tv']
