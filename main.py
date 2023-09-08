@@ -12,6 +12,18 @@ csv_data = []
 
 
 def command(command:str, input:str = None):
+    """Executes a bash command containing no |.
+    
+    Parameters
+    commmand : str
+        This is the command that will be executed.
+    input : str = None
+        The information you want the command to act on. (can be empty).
+
+    Returns
+        data.stdout : str
+            The output of thebash command in a string.
+    """
     if sudo_password:
         data = sudo_mode(command)
     else:
@@ -21,6 +33,16 @@ def command(command:str, input:str = None):
 
 
 def sudo_mode(insert_command:str):          #Note: This uses the shell = True option
+    """Enables sudo mode for a command.
+
+    Parameters
+    insert_command : str
+        The command executed in sudo mode.
+
+    Returns
+    output : str
+        The command in sudo mode.   
+    """
     if sudo_password:
         command = f"echo '{sudo_password}' | sudo -S {insert_command}"
         try:
@@ -34,6 +56,18 @@ def sudo_mode(insert_command:str):          #Note: This uses the shell = True op
     
 
 def pipe(command1:str, command2:str):
+    """The same as | in bash command. command1 | command2.
+
+    Parameters
+    command1 : str
+        First command.
+    command2 : str
+        Second command.
+
+    Returns
+    command.stdout : str
+        The output of the command.   
+    """
     command1 = command1.split()
     command2 = command2.split()
 
@@ -45,6 +79,18 @@ def pipe(command1:str, command2:str):
 
 
 def index_get_paragragh(data:str, select:int):
+    """Retrievs a pargraph from text.
+
+    Parameters
+    data : str
+        This is the text from where the paragraph is retrieved from.
+    select : int
+        This is the location of the paragraph 1st, 2nd etc.
+
+    Returns
+    paragraph.stdout : str
+        The paragraph from the text.
+    """
     command = ['awk', '-v', 'RS=', '-v', 'ORS=', 'NR==' + str(select + 1)]
 
     paragraph = subprocess.run(command, capture_output = True, text = True, input = data)
@@ -53,6 +99,18 @@ def index_get_paragragh(data:str, select:int):
 
 
 def word_get_paragraph(data:str, word:str):
+    """Retrieves a paragraph based on the first word in it.
+
+    Parameters
+    data : str
+        This is the text from where the paragraph is retrieved from.
+    word : str
+        This is the first word of the paragraph.
+
+    Returns
+    paragraph.stdout : str
+        The paragraph from the text.
+    """
     command = ['awk', '-v', 'RS=', f'/\\y{word}\\y/']
     paragraph = subprocess.run(command, capture_output = True, text = True, input = data)
 
@@ -60,6 +118,18 @@ def word_get_paragraph(data:str, word:str):
 
 
 def word_get_line(data:str, word:str):
+    """Gets the line from text, with the matching first word.
+
+    Parameters
+    data : str
+        This is the text from where the line is retrieved from.
+    word : str
+        This is the first word of the line.
+
+    Returns
+    line.stdout : str
+        The line from the text.
+    """
     command = ['grep', '-w', f'{word}']
     line = subprocess.run(command, capture_output = True, text = True, input = data)
 
@@ -67,13 +137,24 @@ def word_get_line(data:str, word:str):
 
 
 def retrieve_text(text_widget:object):
+    """Return text(str) from text widget."""
     text = text_widget.get("1.0", "end-1c")  # Retrieve all text excluding the trailing newline character
     print(text)
 
 
 def main_window():
-
+    """Holds widgets needed for main_window"""
     def lspci_select(event):
+        """Runs the corrosponding lspci command, when its selected in the lspci treeview.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget, to retrieves the widget
+            that activated that event.
+
+        Returns
+
+        """
         global command_selected
         selected_item = event.widget.selection()
 
@@ -93,6 +174,16 @@ def main_window():
 
 
     def setpci_select(event):
+        """Runs the corrosponding setpci command, when its selected in the setpci treeview.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event.
+
+        Returns
+
+        """
         global command_selected, device_selected
         selected_item = event.widget.selection()
 
@@ -110,6 +201,16 @@ def main_window():
 
 
     def device_select(event):
+        """Gets the selected device from the treeview and runs its corrosponging command.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event.
+
+        Returns
+
+        """
         global device_selected
         selected_item = event.widget.selection()[0]
 
@@ -125,14 +226,17 @@ def main_window():
                 update_text_widget(terminal, command(command_selected))
 
 
-   # def custom_selected(event):
-   #     selected_command =  event.widget.selection()
-   #     command_text = event.widget.item(selected_command, 'text')
-   #     print(command_text)
-
-   #     update_text_widget(terminal, command(selected_command))
-
     def custom_selected(event):
+        """Gets the selected command from the custom command treeview and executes it.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event.
+
+        Returns
+
+        """
         selected_item = event.widget.selection()
 
         if selected_item:
