@@ -144,6 +144,7 @@ def retrieve_text(text_widget:object):
 
 def main_window():
     """Holds widgets needed for main_window"""
+
     def lspci_select(event):
         """Runs the corrosponding lspci command, when its selected in the lspci treeview.
 
@@ -155,7 +156,7 @@ def main_window():
         Returns
 
         """
-        global command_selected
+        global command_selected, device_selected
         selected_item = event.widget.selection()
 
         #True if selected_item is from the right treeview widget, since all functions get called
@@ -164,13 +165,9 @@ def main_window():
             setpci_tree.selection_remove(setpci_tree.selection())
             custom_tree.selection_remove(custom_tree.selection())
 
-            item_text = event.widget.item(selected_item, 'text')
-            command_selected = item_text
+            command_selected = event.widget.item(selected_item, 'values')[0]        # First item from tuple.
 
-            if command_selected in lspci_opd_name and device_selected != "":
-                update_text_widget(terminal, command(command_selected + device_selected))
-            elif command_selected in lspic_op_name:
-                update_text_widget(terminal, command(command_selected))
+            update_text_widget(terminal, command(command_selected + device_selected))
 
 
     def setpci_select(event):
@@ -189,17 +186,12 @@ def main_window():
 
         if selected_item:
             lspci_tree.selection_remove(lspci_tree.selection())
-            #devices_tree.selection_remove(devices_tree.selection())
             custom_tree.selection_remove(custom_tree.selection())
 
-            command_selected = event.widget.item(selected_item, 'text')
-            #device_selected = ""
-            if command_selected in setpci_opd_name and device_selected != "":
-                setpci_option = simpledialog.askstring('Config setpci', 'Enter configuration for selected device:') 
-                update_text_widget(terminal, command(command_selected + device_selected + " " + setpci_option))
-                print(command_selected + device_selected + " " + setpci_option)
-            elif command_selected in setpci_op_name:
-                update_text_widget(terminal, command(command_selected))
+            command_selected = event.widget.item(selected_item, 'values')[0]
+            setpci_option = simpledialog.askstring('Config setpci', 'Enter configuration for selected device:') 
+            update_text_widget(terminal, command(command_selected + device_selected + " " + setpci_option))
+            print(command_selected + device_selected + " " + setpci_option)
 
 
     def device_select(event):
@@ -214,7 +206,7 @@ def main_window():
 
         """
         global device_selected, setpci_option
-        selected_item = event.widget.selection()[0]
+        selected_item = event.widget.selection()
 
         if selected_item:
             custom_tree.selection_remove(custom_tree.selection())
@@ -250,12 +242,12 @@ def main_window():
             device_selected = ""
 
             command_selected = event.widget.item(selected_item, 'values')
-            command_selected = command_selected[0]
             
             update_text_widget(terminal, command(command_selected))
 
 
     def device_search(event):
+        global device_selected
         query = devices_entry.get()
 
         devices_tree.delete(*devices_tree.get_children())
@@ -264,6 +256,7 @@ def main_window():
             if query.lower() in item[0].lower() or query.lower() in item[1].lower():
                 devices_tree.insert("", "end", values=item)
         alt_row_colours(devices_tree)
+        device_selected = ""                                                                # Clear device when searching.
 
 
     def highlight_text(query):
@@ -292,31 +285,63 @@ def main_window():
     def save_sudo():
         global sudo_password
         sudo_password = simpledialog.askstring('Sudo Password', 'Enter our sudo password:', show = '*')
-    
+
+
+    def help():
+        print('help')    
+
     # Start custom_commands/csv file methods
-    csv_file_name = 'custom_commands.csv'
+    general_file_name = 'general_commands.csv'
+    setpci_file_name = 'setpci_commands.csv'
+    lspci_file_name = 'lspci_commands.csv'
     new_data = []
 
-    def load_csv():
+    def load_csv(csv_file_name, tree):
         try:
             with open(csv_file_name, mode='r') as file:
                 reader = csv.reader(file)
                 # Iterate through each row in the CSV file
                 for row in reader:
-                    custom_tree.insert('', 'end', values = row)           # Treeview in custom_window
-            alt_row_colours(treeview = custom_tree)
+                    tree.insert('', 'end', values = row)           # Treeview in custom_window
+            alt_row_colours(treeview = tree)
         except FileNotFoundError:
-            print('No custom_commands.csv, creating custom_commands.csv once a command is saved')
+            print('No csv file found for selected command.')
 
 
-    def add_data(event):
+    def add_general(event):
         if custom_entry.get() != '':
             new_data.append(custom_entry.get())
             custom_tree.insert('', 'end', values = new_data)
             custom_entry.delete(0, 'end')
             alt_row_colours(treeview = custom_tree)
 
-            with open(csv_file_name, 'a', newline='') as file:
+            with open(general_file_name, 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(new_data)
+                new_data.clear()
+
+
+    def add_lspci(event):
+        if lspci_entry.get() != '':
+            new_data.append(lspci_entry.get())
+            lspci_tree.insert('', 'end', values = new_data)
+            lspci_entry.delete(0, 'end')
+            alt_row_colours(treeview = lspci_tree)
+
+            with open(lspci_file_name, 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerow(new_data)
+                new_data.clear()
+
+
+    def add_setpci(event):
+        if setpci_entry.get() != '':
+            new_data.append(setpci_entry.get())
+            setpci_tree.insert('', 'end', values = new_data)
+            setpci_entry.delete(0, 'end')
+            alt_row_colours(treeview = setpci_tree)
+
+            with open(setpci_file_name, 'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(new_data)
                 new_data.clear()
@@ -330,32 +355,94 @@ def main_window():
             alt_row_colours(treeview = custom_tree)
 
             # Update CSV file by rewriting the file without the deleted row
-            with open(csv_file_name, "r") as file:
+            with open(general_file_name, "r") as file:
                 lines = file.readlines()
 
-            with open(csv_file_name, "w", newline="") as file:
+            with open(general_file_name, "w", newline="") as file:
                 writer = csv.writer(file)
                 for line in lines:
                     if line.strip() != values[0]:
                         writer.writerow([line.strip()])
     # End custom_commands/csv file methods
 
+
+    def remove_lspci(event):
+        selected_items = lspci_tree.selection()
+        for item in selected_items:
+            values = lspci_tree.item(item, "values")
+            lspci_tree.delete(item)
+            alt_row_colours(treeview = lspci_tree)
+
+            # Update CSV file by rewriting the file without the deleted row
+            with open(lspci_file_name, "r") as file:
+                lines = file.readlines()
+
+            with open(lspci_file_name, "w", newline="") as file:
+                writer = csv.writer(file)
+                for line in lines:
+                    if line.strip() != values[0]:
+                        writer.writerow([line.strip()])
+    
+
+    def remove_setpci(event):
+        selected_items = setpci_tree.selection()
+        for item in selected_items:
+            values = setpci_tree.item(item, "values")
+            setpci_tree.delete(item)
+            alt_row_colours(treeview = setpci_tree)
+
+            # Update CSV file by rewriting the file without the deleted row
+            with open(setpci_file_name, "r") as file:
+                lines = file.readlines()
+
+            with open(setpci_file_name, "w", newline="") as file:
+                writer = csv.writer(file)
+                for line in lines:
+                    if line.strip() != values[0]:
+                        writer.writerow([line.strip()])
+
     window = tk.Tk()
 
     #Start: Options Frame
     options_frame = create_frame(container = window)
 
-    #lspci commands listed frame/treeview.
     lspci_frame = create_frame(container = options_frame)
-    lspci_tree = create_treeview(container = lspci_frame, heading = 'lspci Options', data = lspci_opd_name + lspic_op_name)
-    lspci_frame.grid(column = 0, row = 0, sticky = 'n')
-    lspci_tree.bind('<<TreeviewSelect>>', lspci_select)
 
-    #setpci commands listed frame/treeview.
-    setpci_frame = create_frame(container = options_frame)
-    setpci_tree = create_treeview(container = setpci_frame, heading = 'setpci Options', data = setpci_op_name + setpci_opd_name)
-    setpci_frame.grid(column = 0, row = 1, sticky = 'ns')
-    setpci_tree.bind('<<TreeviewSelect>>', setpci_select)
+    lspci_frame = create_frame(options_frame)
+    lspci_tree = ttk.Treeview(lspci_frame, columns=("Commands"), show="headings")      #Couldnt use the create_treeview function as it returns a frame (cant edit data)
+    lspci_tree.heading("Commands", text="lspci Device Commands")
+    create_scrollbar(container = lspci_frame, widget = lspci_tree, column = 1)
+    lspci_tree.grid(column = 0, row = 0, sticky = "n")
+    lspci_tree.bind("<<TreeviewSelect>>", lspci_select)
+    lspci_tree.bind("<BackSpace>", remove_lspci)
+    
+    lspci_entry_frame = create_label_frame(lspci_frame, 'Command to Save')
+    lspci_entry = ttk.Entry(lspci_entry_frame)
+    lspci_entry.bind('<Return>', add_lspci)
+    lspci_entry.grid(column = 0, row = 1, sticky = 'ew')
+    lspci_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
+    lspci_entry_frame.grid_columnconfigure(0, weight = 1)
+    lspci_frame.grid(column = 0, row = 0, sticky = "n")
+
+    load_csv(lspci_file_name, lspci_tree)
+
+    setpci_frame = create_frame(options_frame)
+    setpci_tree = ttk.Treeview(setpci_frame, columns=("Commands"), show="headings")      #Couldnt use the create_treeview function as it returns a frame (cant edit data)
+    setpci_tree.heading("Commands", text="setpci Device Commands")
+    create_scrollbar(container = setpci_frame, widget = setpci_tree, column = 1)
+    setpci_tree.grid(column = 0, row = 0, sticky = "ns")
+    setpci_tree.bind("<<TreeviewSelect>>", setpci_select)
+    setpci_tree.bind("<BackSpace>", remove_setpci)
+
+    setpci_entry_frame = create_label_frame(setpci_frame, 'Command to Save')
+    setpci_entry = ttk.Entry(setpci_entry_frame)
+    setpci_entry.bind('<Return>', add_setpci)
+    setpci_entry.grid(column = 0, row = 1, sticky = 'ew')
+    setpci_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
+    setpci_entry_frame.grid_columnconfigure(0, weight = 1)
+    setpci_frame.grid(column = 0, row = 1)
+
+    load_csv(setpci_file_name, setpci_tree)
 
     devices_frame = create_frame(container = options_frame)
     # cant use create_treeview as 2 columns is needed
@@ -405,23 +492,24 @@ def main_window():
     # Start: Custom commands treeview widget
     custom_frame = create_frame(window)
     custom_tree= ttk.Treeview(custom_frame, columns=("Commands"), show="headings")      #Couldnt use the create_treeview function as it returns a frame (cant edit data)
-    custom_tree.heading("Commands", text="Custom Commands")
+    custom_tree.heading("Commands", text="General Commands")
     create_scrollbar(container = custom_frame, widget = custom_tree, column = 1)
     custom_tree.grid(column = 0, row = 0, sticky = 'ns')
     custom_tree.bind("<BackSpace>", remove_item)
-    custom_tree.bind("<Double-1>", custom_selected)
+    custom_tree.bind("<<TreeviewSelect>>", custom_selected)
 
-    entry_frame = create_label_frame(custom_frame, 'Command to Save')
-    custom_entry = ttk.Entry(entry_frame)
-    custom_entry.bind('<Return>', add_data)
+    custom_entry_frame = create_label_frame(custom_frame, 'Command to Save')
+    custom_entry = ttk.Entry(custom_entry_frame)
+    custom_entry.bind('<Return>', add_general)
     custom_entry.grid(column = 0, row = 1, sticky = 'ew')
-    entry_frame.grid(column = 0, row = 1, sticky = 'ew')
-    entry_frame.grid_columnconfigure(0, weight = 1)
+    custom_entry_frame.grid(column = 0, row = 1, sticky = 'ew')
+    custom_entry_frame.grid_columnconfigure(0, weight = 1)
     
     custom_frame.grid(column = 2, row = 0, sticky = 'ns')
     custom_frame.grid_rowconfigure(0, weight = 1)
 
-    load_csv()
+    load_csv(general_file_name, custom_tree)
+    #load_csv(setpci_file_name)
     # End: Custom commands treeview widget
 
     #Start: Command entry frame.
@@ -438,6 +526,7 @@ def main_window():
     window['menu'] = menu_bar
     menu_options = tk.Menu(menu_bar, tearoff = False)
     menu_bar.add_cascade(menu = menu_options, label = 'Options')
+    menu_options.add_command(label = 'Help', command = help)
     menu_options.add_command(label = 'Save Terminal Data')
     #menu_options.add_command(label = 'Edit Custom Commands', command = custom_window)
     menu_options.add_command(label = 'Sudo Mode', command = save_sudo)
