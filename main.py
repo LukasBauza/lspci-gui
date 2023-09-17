@@ -292,19 +292,23 @@ def main_window():
                 start = end
     # TODO: Add the terminal_search function to the highlight_text fucntion.
     def terminal_search(event):
-        """Used for getting the 
+        """Used for getting the searched term in the terminal_entry.
         """
          query = terminal_entry.get()
          highlight_text(query)
 
-
+    # TODO: Make it so that the command can take in |.
     def get_custom_command(event):
+        """Gets the custom command from command_entry and updates the terminal.
+        """
         custom_command = command_entry.get()
         command_entry.delete(0, "end")  # Clear the entry widget
         update_text_widget(terminal, command(custom_command))   #Note: The command doesnt take in |
 
 
     def save_sudo():
+        """Saves the sudo password when the user enter it into the sudo window.
+        """
         global sudo_password
         sudo_password = simpledialog.askstring('Sudo Password', 'Enter our sudo password:', show = '*')
 
@@ -319,6 +323,18 @@ def main_window():
     new_data = []
 
     def load_csv(csv_file_name, tree):
+        """When called it loads the csv file data into the corrosponding treeview.
+
+        Parameters
+        csv_file_name: (string)
+            This is the name of the file that will be read from.
+
+        tree: tkinter.Treeview (class)
+            This is the treeview that will have the csv information loaded into.
+
+        Returns
+
+        """
         try:
             with open(csv_file_name, mode='r') as file:
                 reader = csv.reader(file)
@@ -331,6 +347,18 @@ def main_window():
 
 
     def add_general(event):
+        """This is used to add a command to the general commands treeview, through the use of the
+        custom_entry which is a entry widget. It also adds the command to a CSV file, not only the 
+        treeview.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event
+
+        Returns
+
+        """
         if custom_entry.get() != '':
             new_data.append(custom_entry.get())
             custom_tree.insert('', 'end', values = new_data)
@@ -344,6 +372,18 @@ def main_window():
 
 
     def add_lspci(event):
+        """This is used to add a command to the general commands treeview, through the use of the
+        custom_entry which is a entry widget. It also adds the command to a CSV file, not only the 
+        treeview.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event
+
+        Returns
+
+        """
         if lspci_entry.get() != '':
             new_data.append(lspci_entry.get())
             lspci_tree.insert('', 'end', values = new_data)
@@ -357,6 +397,17 @@ def main_window():
 
 
     def add_setpci(event):
+        """Used to add a command to the setpci treeview, by using an entry box (setpci_entry).
+        It also saves the information to the csv file.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event
+
+        Returns
+
+        """
         if setpci_entry.get() != '':
             new_data.append(setpci_entry.get())
             setpci_tree.insert('', 'end', values = new_data)
@@ -370,6 +421,17 @@ def main_window():
 
 
     def remove_item(event):
+        """Used for removing an item from the general commands treeview, by pressing
+        backspace. It will also remove it from its CSv file.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event
+
+        Returns
+
+        """
         selected_items = custom_tree.selection()
         for item in selected_items:
             values = custom_tree.item(item, "values")
@@ -389,6 +451,17 @@ def main_window():
 
 
     def remove_lspci(event):
+        """Used for removing an item from the lspci commands treeview, by pressing
+        backspace. It will also remove it from its CSv file.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event
+
+        Returns
+
+        """
         selected_items = lspci_tree.selection()
         for item in selected_items:
             values = lspci_tree.item(item, "values")
@@ -407,6 +480,17 @@ def main_window():
     
 
     def remove_setpci(event):
+        """Used for removing an item from the setpci commands treeview, by pressing
+        backspace. It will also remove it from its CSv file.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event
+
+        Returns
+
+        """
         selected_items = setpci_tree.selection()
         for item in selected_items:
             values = setpci_tree.item(item, "values")
@@ -558,6 +642,8 @@ def main_window():
 
 
 def create_frame(container:object):
+    """
+    """
     frame = ttk.Frame(container)
 
     #Styling for the frame
@@ -569,6 +655,8 @@ def create_frame(container:object):
 
 
 def create_label_frame(container:object, title:str):
+    """
+    """
     label_frame = ttk.Labelframe(container, text = title)
 
     #Styling for the frame
@@ -580,6 +668,8 @@ def create_label_frame(container:object, title:str):
 
 
 def create_treeview(container:object, heading:str, data:list = []):
+    """
+    """
     treeview = ttk.Treeview(container)
     treeview.heading('#0', text = heading)
     treeview.grid(column = 0, row = 0, sticky = 'ns')
@@ -595,6 +685,8 @@ def create_treeview(container:object, heading:str, data:list = []):
 
 
 def create_scrollbar(container:object, widget:object, column:int):
+    """
+    """
     scrollbar = ttk.Scrollbar(container, orient = tk.VERTICAL, command = widget.yview)
     scrollbar.grid(column = column, row = 0, sticky = 'ns')
 
@@ -602,6 +694,8 @@ def create_scrollbar(container:object, widget:object, column:int):
 
 
 def alt_row_colours(treeview:object):
+    """
+    """
     tag_even = 'even'
     tag_odd = 'odd'
 
@@ -614,6 +708,8 @@ def alt_row_colours(treeview:object):
 
 
 def update_text_widget(widget:object, info:str):
+    """
+    """
     widget.config(state = 'normal')
     widget.delete('1.0', tk.END)
     widget.insert(tk.END, info)
@@ -621,6 +717,8 @@ def update_text_widget(widget:object, info:str):
 
 
 def create_search(container:object, event:str, command):
+    """
+    """
     search = ttk.Entry(container)
     search.bind(event, command)  # Bind the event to the search function
 
