@@ -1,0 +1,2 @@
+setpci -v -s
+setpci -vD -s
