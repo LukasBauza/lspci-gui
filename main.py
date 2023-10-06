@@ -138,7 +138,8 @@ def word_get_line(data:str, word:str):
 
 
 def retrieve_text(text_widget:object):
-    """Return text(str) from text widget."""
+    """Return text(str) from text widget.
+    """
     text = text_widget.get("1.0", "end-1c")  # Retrieve all text excluding the trailing newline character
     print(text)
 
@@ -247,6 +248,16 @@ def main_window():
 
 
     def device_search(event):
+        """Used for searching through the devices treeview. Uses the devices_entry for search.
+
+        Parameters
+        event : tkinter.Event (class)
+            Contains information about the event. Used as event.widget , to retrieves the widget
+            that activated that event.
+
+        Returns
+
+        """
         global device_selected
         query = devices_entry.get()
 
@@ -260,6 +271,15 @@ def main_window():
 
 
     def highlight_text(query):
+        """Used for highlighting the text in the terminal, when using the terminal_entry.
+
+        Parameters
+        query: (string)
+            This is the text that is used to search through the terminal.
+
+        Returns
+
+        """
         terminal.tag_remove("search", "1.0", tk.END)
         if query:
             start = "1.0"
@@ -270,8 +290,10 @@ def main_window():
                 end = f"{start}+{len(query)}c"
                 terminal.tag_add("search", start, end)
                 start = end
-
+    # TODO: Add the terminal_search function to the highlight_text fucntion.
     def terminal_search(event):
+        """Used for getting the 
+        """
          query = terminal_entry.get()
          highlight_text(query)
 
@@ -286,7 +308,7 @@ def main_window():
         global sudo_password
         sudo_password = simpledialog.askstring('Sudo Password', 'Enter our sudo password:', show = '*')
 
-
+    # TODO: Write out what the help for the use of the GUI.
     def help():
         print('help')    
 
