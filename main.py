@@ -28,6 +28,7 @@ def command(command:str, input:str = None):
         data = sudo_mode(command)
     else:
         data = subprocess.run(command, shell = True, capture_output = True, text = True, input = input) 
+        print("Command executed without sudo mode")
 
     return data.stdout
 
@@ -241,8 +242,7 @@ def main_window():
             devices_tree.selection_remove(devices_tree.selection())
             device_selected = ""
 
-            command_selected = event.widget.item(selected_item, 'values')
-            
+            command_selected = event.widget.item(selected_item, 'values')[0]    #Since output is tuple
             update_text_widget(terminal, command(command_selected))
 
 

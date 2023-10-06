@@ -1,0 +1,3 @@
+lspci -vvv
+lspci -v
+echo 123
