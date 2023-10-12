@@ -3,7 +3,8 @@ Main file that will combine the data and the GUI.
 '''
 
 import tkinter as tk
-from tkinter import ttk, simpledialog
+from tkinter import ttk, simpledialog 
+from tkinter .messagebox import showinfo
 import subprocess
 import csv
 
@@ -158,18 +159,20 @@ def main_window():
         Returns
 
         """
-        global command_selected, device_selected
+        global lspci_selected, device_selected, setpci_selected
         selected_item = event.widget.selection()
+
+        lspci_selected = event.widget.item(selected_item, 'values')[0]        # First item from tuple.
 
         #True if selected_item is from the right treeview widget, since all functions get called
         #once an item is selected from a treeview this is because it works on a frame.
-        if selected_item:
+        if selected_item and device_selected:
             setpci_tree.selection_remove(setpci_tree.selection())
             custom_tree.selection_remove(custom_tree.selection())
 
-            command_selected = event.widget.item(selected_item, 'values')[0]        # First item from tuple.
-
-            update_text_widget(terminal, command(command_selected + device_selected))
+            update_text_widget(terminal, command(lspci_selected + device_selected))
+            setpci_selected = ""
+            print(lspci_selected)
 
 
     def setpci_select(event):
@@ -183,17 +186,19 @@ def main_window():
         Returns
 
         """
-        global command_selected, device_selected, setpci_option
+        global setpci_selected, device_selected, setpci_option, lspci_selected
         selected_item = event.widget.selection()
 
-        if selected_item:
+        setpci_selected = event.widget.item(selected_item, 'values')[0]
+
+        if selected_item and device_selected:
             lspci_tree.selection_remove(lspci_tree.selection())
             custom_tree.selection_remove(custom_tree.selection())
 
-            command_selected = event.widget.item(selected_item, 'values')[0]
             setpci_option = simpledialog.askstring('Config setpci', 'Enter configuration for selected device:') 
-            update_text_widget(terminal, command(command_selected + device_selected + " " + setpci_option))
-            print(command_selected + device_selected + " " + setpci_option)
+            update_text_widget(terminal, command(setpci_selected + device_selected + " " + setpci_option))
+            print(setpci_selected + " " + device_selected + " " + setpci_option)
+            lspci_selected = ""
 
 
     def device_select(event):
@@ -207,7 +212,7 @@ def main_window():
         Returns
 
         """
-        global device_selected, setpci_option
+        global device_selected, setpci_option, lspci_selected, setpci_selected
         selected_item = event.widget.selection()
 
         if selected_item:
@@ -215,13 +220,12 @@ def main_window():
 
             device_selected = event.widget.item(selected_item, 'values')[0]
 
-            if command_selected in lspci_opd_name:
-                update_text_widget(terminal, command(command_selected + device_selected))
-            elif command_selected in lspic_op_name:
-                update_text_widget(terminal, command(command_selected))
-            elif command_selected in setpci_opd_name and device_selected != "":
+            if lspci_selected:
+                print(lspci_selected)
+                update_text_widget(terminal, command(lspci_selected + device_selected))
+            elif setpci_selected:
                 setpci_option = simpledialog.askstring('Config setpci', 'Enter configuration for selected device:') 
-                update_text_widget(terminal, command(command_selected + device_selected + " " + setpci_option))
+                update_text_widget(terminal, command(lspci_selected + device_selected + " " + setpci_option))
 
 
     def custom_selected(event):
@@ -235,16 +239,20 @@ def main_window():
         Returns
 
         """
+        global device_selected, setpci_selected, lspci_selected
         selected_item = event.widget.selection()
 
         if selected_item:
             setpci_tree.selection_remove(setpci_tree.selection())
             lspci_tree.selection_remove(lspci_tree.selection())
             devices_tree.selection_remove(devices_tree.selection())
-            device_selected = ""
+            print("hen")
 
             command_selected = event.widget.item(selected_item, 'values')[0]    #Since output is tuple
             update_text_widget(terminal, command(command_selected))
+            device_selected = ""
+            setpci_selected = ""
+            lspci_selected = ""
 
 
     def device_search(event):
@@ -294,8 +302,8 @@ def main_window():
     def terminal_search(event):
         """Used for getting the searched term in the terminal_entry.
         """
-         query = terminal_entry.get()
-         highlight_text(query)
+        query = terminal_entry.get()
+        highlight_text(query)
 
     # TODO: Make it so that the command can take in |.
     def get_custom_command(event):
@@ -313,8 +321,60 @@ def main_window():
         sudo_password = simpledialog.askstring('Sudo Password', 'Enter our sudo password:', show = '*')
 
     # TODO: Write out what the help for the use of the GUI.
-    def help():
-        print('help')    
+    def add_command_help():
+        print("add_command_help")
+        message = "To add a command to one of the command lists (lspci Device Commands, setpci Device commands, General Commands,"
+        message += "you must enter the command at the entry box titled \"Command to Save\"."
+        message += "You must then press the return key to save the command. Commands are saved in "
+        message += "a csv file that corrosponds to the command list.\n\n"
+        message += "The CSV files for the commands are saved automatically in the same directory "
+        message += "as the python code file. (lspci_commands.csv, setpci_commands.csv, general_commands.csv)\n\n"
+        message += "You can place your own .csv that have the same file name above to quickly add commands."
+        showinfo("Add Command", message) 
+
+    def remove_command_help():
+        message = "To remove a command you must select the command that you want to remove from one of the command lists "
+        message += "(lspci Device Commands, setpci Device Commands, General Commands)."
+        message += "Then pressing backspace will remove the command from the list as well as the "
+        message += "corrosponging .csv file."
+        showinfo("Remove Command", message)
+
+    def csv_file_help():
+        message = ""
+
+    def search_help():
+        message = "Searching Devices\n\n"
+        message += "To search for a device in the device listed you enter the device you want to search for."
+        message += "You can either search by slot or by vendor.\n\n"
+        message += "Searching Terminal\n\n"
+        message += "You can search the terminal by using the search terminal entry found under the terminal."
+        message += "It will then highlight the text that has been searched for."
+        showinfo("Searching Features", message)
+
+    def using_commands_help():
+        message = "lspci Device Commands\n\n"
+        message += "You must select an lspci command and then a device for the command to activate. "
+        message += "When creating an lspci Device Command, you must have the option -a, "
+        message += "as all of the commands are only device specific.\n\n"
+        message += "setpci Device Commands\n\n"
+        message += "You must select a setpci Device Command, you must have the option -a, "
+        message += "as all of the commands are only device specific."
+        message += "When a command and a device is selected a pop up window appears."
+        message += "From the pop up window you must enter the registe and what value"
+        message += "you want the register to change to (hex). Example: F4.B=FF\n\n"
+        message += "General Commands\n\n"
+        message += "General Commands dont require a device to be selected to function."
+        showinfo("Using Commands", message)
+
+    def sudo_mode_help():
+        message = "If you want to use the commands in sudo mode you must select options at the top "
+        message += "of the screen and click on sudo mode. A window will open prompting the user to "
+        message += "enter the sudo password."
+        showinfo("Sudo Mode", message)
+
+    def save_terminal_help():
+        message = ""
+        showinfo("Save Terminal Data", message)
 
     # Start custom_commands/csv file methods
     general_file_name = 'general_commands.csv'
@@ -632,10 +692,19 @@ def main_window():
     window['menu'] = menu_bar
     menu_options = tk.Menu(menu_bar, tearoff = False)
     menu_bar.add_cascade(menu = menu_options, label = 'Options')
-    menu_options.add_command(label = 'Help', command = help)
     menu_options.add_command(label = 'Save Terminal Data')
-    #menu_options.add_command(label = 'Edit Custom Commands', command = custom_window)
     menu_options.add_command(label = 'Sudo Mode', command = save_sudo)
+
+    menu_help = tk.Menu(menu_bar, tearoff = False)
+    menu_bar.add_cascade(menu = menu_help, label = "Help")
+    menu_help.add_command(label = "Add Command", command = add_command_help)
+    menu_help.add_command(label = "Remove Command", command = remove_command_help)
+    menu_help.add_command(label = "Search Features", command = search_help)
+    menu_help.add_command(label = "Using Commands", command = using_commands_help)
+    menu_help.add_command(label = "Sudo Mode", command = sudo_mode_help)
+    menu_help.add_command(label = "Terminal", command = save_terminal_help)
+
+
     #End: Options
 
     window.mainloop()
@@ -748,15 +817,5 @@ slot_vendor = nested_slot
 for index in range(len(nested_slot)):
     slot_vendor[index].append(vendor_list[index])
     slot_vendor[index] = tuple(slot_vendor[index])
-
-#Device specific commands
-lspci_opd_name = ['lspci -vs', 'lspci -vvvs', 'lspci -nvmms', 'lspci -xxxs']
-
-setpci_opd_name = ['setpci -v -s ', 'setpci -vD -s ']
-
-#Non device specific commands
-lspic_op_name  = ['lspci -tv']
-
-setpci_op_name = ['setpci --dumpregs']
 
 main_window()
