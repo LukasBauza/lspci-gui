@@ -189,7 +189,8 @@ def main_window():
         global setpci_selected, device_selected, setpci_option, lspci_selected
         selected_item = event.widget.selection()
 
-        setpci_selected = event.widget.item(selected_item, 'values')[0]
+        if selected_item:
+            setpci_selected = event.widget.item(selected_item, 'values')[0]
 
         if selected_item and device_selected:
             lspci_tree.selection_remove(lspci_tree.selection())
@@ -363,7 +364,8 @@ def main_window():
         message += "From the pop up window you must enter the registe and what value"
         message += "you want the register to change to (hex). Example: F4.B=FF\n\n"
         message += "General Commands\n\n"
-        message += "General Commands dont require a device to be selected to function."
+        message += "General Commands dont require a device to be selected to function.\n\n"
+        message += "You can also move up and down using the arrow keys in a list."
         showinfo("Using Commands", message)
 
     def sudo_mode_help():
