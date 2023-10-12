@@ -570,6 +570,7 @@ def main_window():
                         writer.writerow([line.strip()])
 
     window = tk.Tk()
+    window.title("LSPCI Automation Hub - HAL1.0")
 
     #Start: Options Frame
     options_frame = create_frame(container = window)
