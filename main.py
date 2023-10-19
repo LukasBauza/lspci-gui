@@ -374,10 +374,6 @@ def main_window():
         message += "enter the sudo password."
         showinfo("Sudo Mode", message)
 
-    def save_terminal_help():
-        message = ""
-        showinfo("Save Terminal Data", message)
-
     # Start custom_commands/csv file methods
     general_file_name = 'general_commands.csv'
     setpci_file_name = 'setpci_commands.csv'
@@ -571,6 +567,7 @@ def main_window():
 
     window = tk.Tk()
     window.title("LSPCI Automation Hub - HAL1.0")
+    window.resizable(False, False)
 
     #Start: Options Frame
     options_frame = create_frame(container = window)
@@ -695,7 +692,6 @@ def main_window():
     window['menu'] = menu_bar
     menu_options = tk.Menu(menu_bar, tearoff = False)
     menu_bar.add_cascade(menu = menu_options, label = 'Options')
-    menu_options.add_command(label = 'Save Terminal Data')
     menu_options.add_command(label = 'Sudo Mode', command = save_sudo)
 
     menu_help = tk.Menu(menu_bar, tearoff = False)
@@ -705,9 +701,6 @@ def main_window():
     menu_help.add_command(label = "Search Features", command = search_help)
     menu_help.add_command(label = "Using Commands", command = using_commands_help)
     menu_help.add_command(label = "Sudo Mode", command = sudo_mode_help)
-    menu_help.add_command(label = "Terminal", command = save_terminal_help)
-
-
     #End: Options
 
     window.mainloop()
