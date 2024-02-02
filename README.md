@@ -3,6 +3,8 @@
 ## Overview
 Welcome to the LSPCI/SETPCI Automation Hub - a graphical user interface for managing PCI devices using 'lspci' and 'setpci' commands. It provides and intuative way to explore PCI devices that are connected to the motherboard, view the information about them, and modify their settings with ease.
 
+![alt text](images/lspci_automation_hub.png)
+
 ## Features
 - **Explore PCI Devices**: Provides and easy way to view all of the PCI slots connected to a device.
 - **View Device Details**: Get detailed information about each PCI device, including vendor and device ID's, driver information and more.
